@@ -206,19 +206,22 @@ function render(){
  var H="";
  keys.forEach(function(k){var c=cnt(k),paid=S.paid[k],pk=nextKey(k);
   H+='<div class="card"><div class="hd"><h2>'+mlabel(k)+'</h2>'+(c>0?(paid?'<span class="tag c">Cobrado</span>':'<span class="tag p">Pendiente: nómina de '+mlabel(pk)+'</span>'):'<span class="tag">Sin dietas</span>')+'</div>'
-  +'<div style="margin-bottom:8px"><b>'+c+'</b> dieta'+(c===1?"":"s")+' = <b>'+eur(c*S.set.rate)+'</b></div>'+'<a class="btn" href="'+mailHref(k)+'">✉ Enviar resumen del mes por correo</a>';
+  +'<div style="margin-bottom:8px"><b>'+c+'</b> dieta'+(c===1?"":"s")+' = <b>'+eur(c*S.set.rate)+'</b></div>'+'<a class="btn" href="'+mailHref(k)+'">✉ Enviar datos del mes por correo</a>'+'<button class="ghost" style="margin:0 0 10px;width:100%;padding:8px" onclick="shareMonth(\''+k+'\')">Compartir o copiar el resumen</button>';
   by[k].sort(function(a,b){return a.d<b.d?1:-1}).forEach(function(r){
    H+='<div class="item"><div>'+r.d.split("-").reverse().join("/")+' · '+esc(r.t)+'<small>'+r.km+' km · '+(r.dieta?"con dieta":"sin dieta")+'</small></div><button class="ghost" onclick="remove('+r.id+')" aria-label="Borrar">✕</button></div>'});
   if(c>0&&paid)H+='<div style="margin-top:8px"><button class="ghost" onclick="undo(\''+k+'\')">Marcar como no cobrado</button></div>';
   H+='</div>'});
  $("months").innerHTML=H}
-function mailHref(k){
+function monthText(k){
  var L=S.rec.filter(function(r){return mk(r.d)===k}).sort(function(a,b){return a.d<b.d?-1:1});
- var c=L.filter(function(r){return r.dieta}).length;
- var t="Resumen de dietas de "+mlabel(k)+"\n\n";
- L.forEach(function(r){t+=r.d.split("-").reverse().join("/")+" - "+r.t+" - "+r.km+" km - "+(r.dieta?"CON dieta":"sin dieta")+"\n"});
- t+="\nDietas a cobrar: "+c+" x "+eur(S.set.rate)+" = "+eur(c*S.set.rate)+"\nSe cobran en la nómina de "+mlabel(nextKey(k))+".";
- return "mailto:"+esc(S.set.mail||"")+"?subject="+encodeURIComponent("Dietas "+mlabel(k))+"&body="+encodeURIComponent(t)}
+ var t="Desplazamientos de "+mlabel(k)+"\n\n";
+ L.forEach(function(r){t+=r.d.split("-").reverse().join("/")+" - "+r.t+"\n"});
+ return t}
+function mailHref(k){return "mailto:"+esc(S.set.mail||"")+"?subject="+encodeURIComponent("Dietas "+mlabel(k))+"&body="+encodeURIComponent(monthText(k))}
+async function shareMonth(k){var t=monthText(k);
+ try{if(navigator.share){await navigator.share({title:"Dietas "+mlabel(k),text:t});return}}catch(e){if(e&&e.name==="AbortError")return}
+ try{await navigator.clipboard.writeText(t);status("Resumen copiado: pégalo en tu correo")}catch(e){status("No se pudo copiar el resumen")}}
+window.shareMonth=shareMonth;
 function esc(s){return String(s).replace(/[&<>"]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]})}
 render();
 loadRemote();
