@@ -114,7 +114,9 @@ if(sb)sb.auth.onAuthStateChange(function(ev,s){
   var bar=document.createElement("div");bar.style.cssText="display:flex;justify-content:space-between;align-items:center;font-size:.85rem;color:var(--mut);margin-bottom:6px;gap:8px";
   bar.innerHTML='<span></span><button class="ghost" id="lo" style="margin:0">Salir</button>';bar.firstChild.textContent="Sesión: "+(u.email||"");
   g("app").insertBefore(bar,g("app").firstChild);
-  g("lo").addEventListener("click",function(){var f=function(){location.reload()};sb.auth.signOut().then(f,f)});
+  g("lo").addEventListener("click",function(){
+   var done=false,f=function(){if(done)return;done=true;try{for(var i=localStorage.length-1;i>=0;i--){var k=localStorage.key(i);if(/^sb-.+-auth-token/.test(k))localStorage.removeItem(k)}}catch(e){}try{sessionStorage.removeItem("cdc_rl")}catch(e){}location.reload()};
+   setTimeout(f,2500);try{sb.auth.signOut().then(f,f)}catch(e){f()}});
   sb.auth.getSession().then(function(r){if(!r.data.session&&!sessionStorage.getItem("cdc_rl")){sessionStorage.setItem("cdc_rl","1");location.reload()}});
  }else{g("auth").hidden=false;setMode("in");if(!sb)msg("Falta configurar Supabase (URL y clave) en el archivo.")}})();
 </script>
@@ -125,11 +127,11 @@ var T={"Alhaurín de la Torre":[36.6636,-4.5608],"Alhaurín el Grande":[36.6428,
 var S={set:{rate:15,km:40,factor:1.3},rec:[],paid:{}};
 try{var s=localStorage.getItem(KEY);if(s){var o=JSON.parse(s);S.set=Object.assign(S.set,o.set||{});S.rec=o.rec||[];S.paid=o.paid||{}}}catch(e){}
 var ready=false,lastSet="",tm=null;
-function status(t){var e=$("st");if(e){e.textContent=t;clearTimeout(status.t);status.t=setTimeout(function(){e.textContent=""},4000)}}
+function status(t,keep){var e=$("st");if(e){e.textContent=t;clearTimeout(status.t);if(!keep)status.t=setTimeout(function(){e.textContent=""},4000)}}
 function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}clearTimeout(tm);tm=setTimeout(pushSetNow,600)}
 function pushSetNow(){if(!sb||!CDC_USER||!ready)return Promise.resolve();var j=JSON.stringify(S.set);if(j===lastSet)return Promise.resolve();lastSet=j;
  return sb.from("ajustes").upsert({user_id:CDC_USER,importe:S.set.rate,km_minimos:S.set.km,factor:S.set.factor,correo_destino:S.set.mail||null,updated_at:new Date().toISOString()}).then(function(r){if(r.error){lastSet="";status("No se pudieron guardar los ajustes en la nube")}})}
-async function remoteAdd(r){if(!sb||!CDC_USER)return;try{var x=await sb.from("desplazamientos").insert({fecha:r.d,poblacion:r.t,km:r.km,dieta:r.dieta}).select().single();if(x.error)throw x.error;r.id=x.data.id;save();render();status("Guardado en la nube")}catch(e){status("No se pudo guardar en la nube; queda en este dispositivo")}}
+async function remoteAdd(r){if(!sb||!CDC_USER)return;try{var x=await sb.from("desplazamientos").insert({fecha:r.d,poblacion:r.t,km:r.km,dieta:r.dieta}).select().single();if(x.error)throw x.error;r.id=x.data.id;save();render();status("Guardado en la nube")}catch(e){status("No se pudo guardar en la nube ("+((e&&e.message)||e)+"). Queda en este dispositivo.",true)}}
 async function loadRemote(){if(!sb||!CDC_USER)return;
  try{
   status("Sincronizando…");
@@ -150,7 +152,7 @@ async function loadRemote(){if(!sb||!CDC_USER)return;
   try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}
   $("sr").value=S.set.rate;$("sk").value=S.set.km;$("sf").value=S.set.factor;$("sm").value=S.set.mail||"";
   upd();render();status("Sincronizado con la nube");
- }catch(e){status("Sin conexión con la nube: se usan los datos de este dispositivo")}}
+ }catch(e){status("Sin conexión con la nube ("+((e&&e.message)||e)+"). Se usan los datos de este dispositivo.",true)}}
 function $(i){return document.getElementById(i)}
 function norm(x){return x.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").trim()}
 function find(n){var q=norm(n);for(var k in T){if(norm(k)===q)return k}return null}
