@@ -76,7 +76,8 @@ function g(i){return document.getElementById(i)}
 function msg(t,ok){var e=g("ae");e.textContent=t;e.style.color=ok?"#2f9e44":"#e5484d"}
 function tr(m){m=(m||"").toLowerCase();if(m.indexOf("not confirmed")>=0)return"Primero verifica tu correo con el enlace que te enviamos.";if(m.indexOf("invalid login")>=0)return"Correo o contraseña incorrectos.";if(m.indexOf("already")>=0)return"Ese correo ya está registrado. Prueba a entrar.";if(m.indexOf("rate")>=0)return"Demasiados intentos. Espera un momento.";return"Error: "+m}
 function setMode(m){mode=m;g("r2").hidden=m!=="up";g("tin").className=m==="in"?"":"ghost";g("tup").className=m==="up"?"":"ghost";g("ago").textContent=m==="up"?"Crear cuenta":"Entrar";g("ap").autocomplete=m==="up"?"new-password":"current-password";msg("")}
-function cached(){try{for(var i=0;i<localStorage.length;i++){var k=localStorage.key(i);if(/^sb-.+-auth-token$/.test(k)){var o=JSON.parse(localStorage.getItem(k));if(o&&o.user)return o.user}}}catch(e){}return null}
+var SKEY="sb-"+SUPABASE_URL.replace(/^https?:\/\//,"").split(".")[0]+"-auth-token";
+function cached(){try{var o=JSON.parse(localStorage.getItem(SKEY)||"null");if(o&&o.user)return o.user}catch(e){}return null}
 try{if(window.supabase&&SUPABASE_URL.indexOf("TU-PROYECTO")<0)sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY)}catch(e){}
 async function go(){var n=g("au").value.trim().toLowerCase(),p=g("ap").value;msg("");
  if(!sb){msg("Falta configurar Supabase (URL y clave) en el archivo.");return}
@@ -109,13 +110,13 @@ if(sb)sb.auth.onAuthStateChange(function(ev,s){
  if(ev==="SIGNED_IN"&&!CDC_USER&&s&&!rec)location.reload()});
 (function(){var u=cached();
  if(u&&sb){CDC_USER=u.id;
-  try{if(!localStorage.getItem("dietas_v1:"+u.id)&&!localStorage.getItem("cdc_mig")){var old=localStorage.getItem("dietas_v1");if(old)localStorage.setItem("dietas_v1:"+u.id,old);localStorage.setItem("cdc_mig","1")}}catch(e){}
+  try{var uk="dietas_v1:"+u.id;if(!localStorage.getItem(uk)&&!localStorage.getItem("cdc_mig_"+u.id)){var old=localStorage.getItem("dietas_v1");if(!old){for(var i=0;i<localStorage.length;i++){var kk=localStorage.key(i);if(kk.indexOf("dietas_v1:")===0&&kk!==uk){var v=localStorage.getItem(kk);try{if(JSON.parse(v).rec.length){old=v;break}}catch(e2){}}}}if(old)localStorage.setItem(uk,old);localStorage.setItem("cdc_mig_"+u.id,"1")}}catch(e){}
   g("app").hidden=false;
   var bar=document.createElement("div");bar.style.cssText="display:flex;justify-content:space-between;align-items:center;font-size:.85rem;color:var(--mut);margin-bottom:6px;gap:8px";
   bar.innerHTML='<span></span><button class="ghost" id="lo" style="margin:0">Salir</button>';bar.firstChild.textContent="Sesión: "+(u.email||"");
   g("app").insertBefore(bar,g("app").firstChild);
   g("lo").addEventListener("click",function(){
-   var done=false,f=function(){if(done)return;done=true;try{for(var i=localStorage.length-1;i>=0;i--){var k=localStorage.key(i);if(/^sb-.+-auth-token/.test(k))localStorage.removeItem(k)}}catch(e){}try{sessionStorage.removeItem("cdc_rl")}catch(e){}location.reload()};
+   var done=false,f=function(){if(done)return;done=true;try{localStorage.removeItem(SKEY)}catch(e){}try{sessionStorage.removeItem("cdc_rl")}catch(e){}location.reload()};
    setTimeout(f,2500);try{sb.auth.signOut().then(f,f)}catch(e){f()}});
   sb.auth.getSession().then(function(r){if(!r.data.session&&!sessionStorage.getItem("cdc_rl")){sessionStorage.setItem("cdc_rl","1");location.reload()}});
  }else{g("auth").hidden=false;setMode("in");if(!sb)msg("Falta configurar Supabase (URL y clave) en el archivo.")}})();
@@ -135,6 +136,7 @@ async function remoteAdd(r){if(!sb||!CDC_USER)return;try{var x=await sb.from("de
 async function loadRemote(){if(!sb||!CDC_USER)return;
  try{
   status("Sincronizando…");
+  var ss=await sb.auth.getSession();if(!ss.data.session){status("Tu sesión no es válida para esta base de datos: pulsa Salir y vuelve a entrar.",true);return}
   var a=await sb.from("ajustes").select("*").maybeSingle();
   var d=await sb.from("desplazamientos").select("*").order("fecha",{ascending:false}).limit(5000);
   var c=await sb.from("cobros").select("*");
