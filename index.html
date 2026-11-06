@@ -62,7 +62,7 @@ details summary{cursor:pointer;color:var(--mut)}
 
 <div class="card" id="setp" hidden><h2>Ajustes</h2>
 <div class="row"><div><label for="sr">€ por dieta</label><input type="number" id="sr" step="0.5"></div><div><label for="sk">Km mínimos</label><input type="number" id="sk"></div></div>
-<label for="sf">Factor carretera (km reales ≈ línea recta × factor)</label><input type="number" id="sf" step="0.05"><label for="sm">Correo de destino (para enviar el resumen del mes)</label><input type="email" id="sm" placeholder="correo@ejemplo.com">
+<label for="sf">Factor carretera (km reales ≈ línea recta × factor)</label><input type="number" id="sf" step="0.05"><label for="sm">Correo de destino (para enviar el resumen del mes)</label><input type="email" id="sm" placeholder="correo@ejemplo.com"><label for="sn">Nombre de quien recibe el correo (para el saludo)</label><input id="sn" placeholder="Ej. Eduardo">
 <p style="font-size:.8rem;color:var(--mut)">Los km son una estimación: distancia en línea recta desde Málaga × factor. Si una población queda cerca de 40 km, escribe los km reales de tu navegador. Si la población no está en la lista, escribe los km a mano.</p>
 </div>
 </main>
@@ -173,7 +173,8 @@ function today(){var n=new Date();return n.getFullYear()+"-"+("0"+(n.getMonth()+
 
 var dl=$("tl");for(var k in T){var op=document.createElement("option");op.value=k;dl.appendChild(op)}
 $("d").value=today();
-$("sr").value=S.set.rate;$("sk").value=S.set.km;$("sf").value=S.set.factor;$("sm").value=S.set.mail||"";
+$("sr").value=S.set.rate;$("sk").value=S.set.km;$("sf").value=S.set.factor;$("sm").value=S.set.mail||"";$("sn").value=S.set.nombre===undefined?"Eduardo":S.set.nombre;
+$("sn").addEventListener("change",function(){S.set.nombre=$("sn").value.trim();save();render()});
 var fc=$("add").closest(".card");fc.parentNode.insertBefore($("setp"),fc);
 $("gear").addEventListener("click",function(){$("setp").hidden=!$("setp").hidden});
 $("sm").addEventListener("change",function(){S.set.mail=$("sm").value.trim();save();render()});
@@ -219,11 +220,13 @@ function render(){
   H+='</div>'});
  $("months").innerHTML=H}
 function monthText(k){
- var L=S.rec.filter(function(r){return mk(r.d)===k}).sort(function(a,b){return a.d<b.d?-1:1});
- var t="Desplazamientos de "+mlabel(k)+"\n\n";
- L.forEach(function(r){t+=r.d.split("-").reverse().join("/")+" - "+r.t+"\n"});
+ var L=S.rec.filter(function(r){return mk(r.d)===k&&r.dieta&&!esViernes(r.d)}).sort(function(a,b){return a.d<b.d?-1:1});
+ var n=S.set.nombre===undefined?"Eduardo":S.set.nombre;
+ var t="Buenas"+(n?" "+n:"")+",\n\nHe revisado las dietas cobradas en nómina con las que tengo registradas y he localizado discrepancias.\n\nCuando puedas, cruza datos con tu registro. Te paso mi listado de días/poblaciones con dieta de "+mlabel(k)+":\n\n";
+ if(L.length){L.forEach(function(r){t+=r.d.split("-").reverse().join("/")+" - "+r.t+"\n"})}else{t+="(No hay días con dieta este mes)\n"}
+ t+="\nUn saludo\nMuchas gracias";
  return t}
-function mailHref(k){return "mailto:"+esc(S.set.mail||"")+"?subject="+encodeURIComponent("Dietas "+mlabel(k))+"&body="+encodeURIComponent(monthText(k))}
+function mailHref(k){return "mailto:"+esc(S.set.mail||"")+"?subject="+encodeURIComponent("Revisión de dietas - "+mlabel(k))+"&body="+encodeURIComponent(monthText(k))}
 async function shareMonth(k){var t=monthText(k);
  try{if(navigator.share){await navigator.share({title:"Dietas "+mlabel(k),text:t});return}}catch(e){if(e&&e.name==="AbortError")return}
  try{await navigator.clipboard.writeText(t);status("Resumen copiado: pégalo en tu correo")}catch(e){status("No se pudo copiar el resumen")}}
