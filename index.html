@@ -164,6 +164,8 @@ var h=Math.sin(dl/2)*Math.sin(dl/2)+Math.cos(ORIGIN[0]*r)*Math.cos(a[0]*r)*Math.
 return Math.round(2*R*Math.asin(Math.sqrt(h))*S.set.factor)}
 function eur(n){return n.toLocaleString("es-ES",{minimumFractionDigits:0,maximumFractionDigits:2})+" €"}
 function mk(d){return d.slice(0,7)}
+function esViernes(d){return !!d&&new Date(d+"T12:00:00").getDay()===5}
+function conDieta(km,d){return km>S.set.km&&!esViernes(d)}
 function mlabel(k){var p=k.split("-");return MES[+p[1]-1]+" "+p[0]}
 function nextKey(k){var p=k.split("-"),y=+p[0],m=+p[1]+1;if(m>12){m=1;y++}return y+"-"+(m<10?"0":"")+m}
 function prevKey(y,m){m--;if(m<1){m=12;y--}return y+"-"+(m<10?"0":"")+m}
@@ -181,15 +183,15 @@ $("sm").addEventListener("change",function(){S.set.mail=$("sm").value.trim();sav
 
 function upd(){var km=parseFloat($("k").value),box=$("r");
  if(isNaN(km)){box.innerHTML="";return}
- var yes=km>S.set.km;
- box.innerHTML='<div class="res '+(yes?"yes":"no")+'">'+(yes?"✅ Hay dieta: "+eur(S.set.rate):"Sin dieta ("+km+" km, mínimo más de "+S.set.km+")")+"</div>"}
+ var vi=esViernes($("d").value),yes=km>S.set.km&&!vi;
+ box.innerHTML='<div class="res '+(yes?"yes":"no")+'">'+(yes?"✅ Hay dieta: "+eur(S.set.rate):(vi?"Sin dieta: los viernes no cuentan":"Sin dieta ("+km+" km, mínimo más de "+S.set.km+")"))+"</div>"}
 $("t").addEventListener("input",function(){var e=est($("t").value);if(e!==null){$("k").value=e}upd()});
-$("k").addEventListener("input",upd);
+$("k").addEventListener("input",upd);$("d").addEventListener("change",upd);
 
 $("add").addEventListener("click",function(){
  var t=$("t").value.trim(),km=parseFloat($("k").value),d=$("d").value;
  if(!d||!t||isNaN(km)){alert("Indica fecha, población y km.");return}
- var nr={id:Date.now(),d:d,t:find(t)||t,km:km,dieta:km>S.set.km};S.rec.push(nr);
+ var nr={id:Date.now(),d:d,t:find(t)||t,km:km,dieta:conDieta(km,d)};S.rec.push(nr);
  save();$("t").value="";$("k").value="";upd();render();remoteAdd(nr)});
 
 function remove(id){S.rec=S.rec.filter(function(r){return r.id!==id});save();render();if(sb&&CDC_USER&&ready)sb.from("desplazamientos").delete().eq("id",id).then(function(x){if(x.error)status("No se pudo borrar en la nube")})}
@@ -200,7 +202,7 @@ window.remove=remove;window.confirmMonth=confirmMonth;window.undo=undo;
 function render(){
  var by={};S.rec.forEach(function(r){var k=mk(r.d);(by[k]=by[k]||[]).push(r)});
  var keys=Object.keys(by).sort().reverse();
- function cnt(k){return by[k].filter(function(r){return r.dieta}).length}
+ function cnt(k){return by[k].filter(function(r){return r.dieta&&!esViernes(r.d)}).length}
  var n=new Date(),dd=n.getDate(),y=n.getFullYear(),m=n.getMonth()+1,A="";
  var P=null;if(dd>=25)P=y+"-"+(m<10?"0":"")+m;else if(dd<=5)P=prevKey(y,m);
  if(P){var due=prevKey(+P.split("-")[0],+P.split("-")[1]);
@@ -212,7 +214,7 @@ function render(){
   H+='<div class="card"><div class="hd"><h2>'+mlabel(k)+'</h2>'+(c>0?(paid?'<span class="tag c">Cobrado</span>':'<span class="tag p">Pendiente: nómina de '+mlabel(pk)+'</span>'):'<span class="tag">Sin dietas</span>')+'</div>'
   +'<div style="margin-bottom:8px"><b>'+c+'</b> dieta'+(c===1?"":"s")+' = <b>'+eur(c*S.set.rate)+'</b></div>'+'<a class="btn" href="'+mailHref(k)+'">✉ Enviar datos del mes por correo</a>'+'<button class="ghost" style="margin:0 0 10px;width:100%;padding:8px" onclick="shareMonth(\''+k+'\')">Compartir o copiar el resumen</button>';
   by[k].sort(function(a,b){return a.d<b.d?1:-1}).forEach(function(r){
-   H+='<div class="item"><div>'+r.d.split("-").reverse().join("/")+' · '+esc(r.t)+'<small>'+r.km+' km · '+(r.dieta?"con dieta":"sin dieta")+'</small></div><button class="ghost" onclick="remove('+r.id+')" aria-label="Borrar">✕</button></div>'});
+   H+='<div class="item"><div>'+r.d.split("-").reverse().join("/")+' · '+esc(r.t)+'<small>'+r.km+' km · '+(r.dieta&&!esViernes(r.d)?"con dieta":(esViernes(r.d)?"viernes: sin dieta":"sin dieta"))+'</small></div><button class="ghost" onclick="remove('+r.id+')" aria-label="Borrar">✕</button></div>'});
   if(c>0&&paid)H+='<div style="margin-top:8px"><button class="ghost" onclick="undo(\''+k+'\')">Marcar como no cobrado</button></div>';
   H+='</div>'});
  $("months").innerHTML=H}
