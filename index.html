@@ -172,6 +172,7 @@ function eur(n){return n.toLocaleString("es-ES",{minimumFractionDigits:0,maximum
 function mk(d){return d.slice(0,7)}
 function esViernes(d){return !!d&&new Date(d+"T12:00:00").getDay()===5}
 function conDieta(km,d){return km>S.set.km&&!esViernes(d)}
+function cap(t){return t.charAt(0).toUpperCase()+t.slice(1)}
 function mlabel(k){var p=k.split("-");return MES[+p[1]-1]+" "+p[0]}
 function nextKey(k){var p=k.split("-"),y=+p[0],m=+p[1]+1;if(m>12){m=1;y++}return y+"-"+(m<10?"0":"")+m}
 function prevKey(y,m){m--;if(m<1){m=12;y--}return y+"-"+(m<10?"0":"")+m}
@@ -219,7 +220,7 @@ function render(){
  $("alerts").innerHTML=A;
  var H="";
  keys.forEach(function(k){var c=cnt(k),paid=S.paid[k],pk=nextKey(k);
-  H+='<div class="card"><div class="hd"><h2>'+mlabel(k)+'</h2><div style="display:flex;gap:8px;align-items:center">'+(c>0?(paid?'<span class="tag c">Cobrado</span>':'<span class="tag p">Pendiente: nómina de '+mlabel(pk)+'</span>'):'<span class="tag">Sin dietas</span>')+'<button class="ghost" style="font-size:1.3rem;line-height:1;padding:4px 12px" onclick="toggleAdd(\''+k+'\')" aria-label="Añadir dieta no cobrada" title="Añadir dieta no cobrada">+</button></div></div>'
+  H+='<div class="card"><div class="hd"><h2>'+cap(mlabel(k))+'</h2><div style="display:flex;gap:8px;align-items:center">'+(c>0?(paid?'<span class="tag c">Cobrado</span>':'<span class="tag p">Pendiente: nómina de '+mlabel(pk)+'</span>'):'<span class="tag">Sin dietas</span>')+'<button class="ghost" style="font-size:1.3rem;line-height:1;padding:4px 12px" onclick="toggleAdd(\''+k+'\')" aria-label="Añadir dieta no cobrada" title="Añadir dieta no cobrada">+</button></div></div>'
   +'<div style="margin-bottom:8px"><b>'+c+'</b> dieta'+(c===1?"":"s")+' = <b>'+eur(c*S.set.rate)+'</b></div>'+extraHtml(k,c)+'<a class="btn" href="'+mailHref(k)+'">✉ Enviar datos del mes por correo</a>'+'<button class="ghost" style="margin:0 0 10px;width:100%;padding:8px" onclick="shareMonth(\''+k+'\')">Compartir o copiar el resumen</button>';
   H+='<details'+(OPEN[k]?' open':'')+' data-k="'+k+'"><summary>Ver fechas ('+by[k].length+')</summary>';
   by[k].sort(function(a,b){return a.d<b.d?1:-1}).forEach(function(r){
