@@ -41,7 +41,7 @@ details summary{cursor:pointer;color:var(--ac);font-weight:500;padding:6px 0}
 <button id="ago" type="button">Entrar</button>
 <button id="tgl" type="button" class="ghost" style="margin:10px 0 0">¿No tienes cuenta? Créala</button>
 <button id="fg" type="button" class="ghost" style="margin:10px 0 0">¿Olvidaste la contraseña?</button>
-<p style="font-size:.8rem;color:var(--mut);margin-bottom:0">Al crear la cuenta recibirás un correo para verificarla. Tus desplazamientos se guardan en tu cuenta, así que los verás desde cualquier dispositivo.</p>
+<p style="font-size:.8rem;color:var(--mut);margin-bottom:0">Al crear la cuenta recibirás un correo para verificarla. Tus desplazamientos se guardan en este dispositivo.</p>
 </div>
 </main>
 <main id="app" hidden>
@@ -221,7 +221,9 @@ function render(){
  keys.forEach(function(k){var c=cnt(k),paid=S.paid[k],pk=nextKey(k);
   H+='<div class="card"><div class="hd"><h2>'+cap(mlabel(k))+'</h2><div style="display:flex;gap:8px;align-items:center">'+(c>0?(paid?'<span class="tag c">Cobrado</span>':'<span class="tag p">Pendiente: nómina de '+mlabel(pk)+'</span>'):'<span class="tag">Sin dietas</span>')+'<button class="ghost" style="font-size:1.3rem;line-height:1;padding:4px 12px" onclick="toggleAdd(\''+k+'\')" aria-label="Añadir dieta no cobrada" title="Añadir dieta no cobrada">+</button></div></div>'
   +'<div style="margin-bottom:8px"><b>'+c+'</b> dieta'+(c===1?"":"s")+' = <b>'+eur(c*S.set.rate)+'</b></div>'+extraHtml(k,c)+'<a class="btn" href="'+mailHref(k)+'">✉ Enviar datos del mes por correo</a>'+'<button class="ghost" style="margin:0 0 10px;width:100%;padding:8px" onclick="shareMonth(\''+k+'\')">Compartir o copiar el resumen</button>';
-  H+='<details'+(OPEN[k]?' open':'')+' data-k="'+k+'"><summary>Ver fechas ('+by[k].length+')</summary>';
+  var XL=(S.extra||[]).filter(function(x){return x.m===k}).sort(function(a,b){return a.d<b.d?1:-1});
+  H+='<details'+(OPEN[k]?' open':'')+' data-k="'+k+'"><summary>Ver fechas ('+(by[k].length+XL.length)+')</summary>';
+  XL.forEach(function(x){H+='<div class="item"><div>'+x.d.split("-").reverse().join("/")+' · '+esc(x.a)+'<small>'+eur(x.p)+' · no cobrada</small></div><button class="ghost" onclick="removeExtra('+x.id+')" aria-label="Borrar">✕</button></div>'});
   by[k].sort(function(a,b){return a.d<b.d?1:-1}).forEach(function(r){
    H+='<div class="item"><div>'+r.d.split("-").reverse().join("/")+' · '+esc(r.t)+'<small>'+r.km+' km · '+(r.dieta&&!esViernes(r.d)?"con dieta":(esViernes(r.d)?"viernes: sin dieta":"sin dieta"))+'</small></div><button class="ghost" onclick="remove('+r.id+')" aria-label="Borrar">✕</button></div>'});
   H+='</details>';
@@ -235,7 +237,7 @@ function extraHtml(k,c){
  var L=(S.extra||[]).filter(function(x){return x.m===k}).sort(function(a,b){return a.d<b.d?1:-1}),tot=0,h="";
  L.forEach(function(x){tot+=x.p});
  if(L.length){h+='<div style="margin-bottom:8px"><b>+'+L.length+'</b> no cobrada'+(L.length===1?"":"s")+' de meses anteriores = <b>'+eur(tot)+'</b></div><div style="margin-bottom:8px;padding-top:6px;border-top:1px solid var(--bd)">Total del mes: <b>'+eur(c*S.set.rate+tot)+'</b></div>';
-  L.forEach(function(x){h+='<div class="item"><div>'+x.d.split("-").reverse().join("/")+' · '+esc(x.a)+'<small>'+eur(x.p)+' · no cobrada</small></div><button class="ghost" onclick="removeExtra('+x.id+')" aria-label="Borrar">✕</button></div>'})}
+}
  h+='<div id="xf-'+k+'"'+(OPENADD[k]?'':' hidden')+' style="border-top:1px solid var(--bd);margin:6px 0 10px;padding-top:4px"><div style="font-size:.85rem;color:var(--mut);margin-top:6px">Dietas sin cobrar</div>'
  +'<div class="row"><div><label for="xd-'+k+'">Fecha</label><input type="date" id="xd-'+k+'" max="'+mx+'" value="'+mx+'"></div><div><label for="xp-'+k+'">Precio (€)</label><input type="number" id="xp-'+k+'" step="0.5" min="0" inputmode="decimal" value="'+S.set.rate+'"></div></div>'
  +'<label for="xa-'+k+'">Asunto</label><input id="xa-'+k+'" placeholder="Ej. Visita a Ronda" autocomplete="off">'
